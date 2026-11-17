@@ -63,6 +63,18 @@ npm test              # handle rules, cooldown, reservations, avatars, routes ag
 npm run build         # tsc + Astro's checker + production build
 ```
 
+## Moving existing handles into Logto
+
+`scripts/migrate-handles.ts` writes an approved plan (`{ "users": [{ "id",
+"username"?, "reserve"? }] }`) through the Management API: one PATCH per user
+(username and `customData.robyrewId.previousHandles` together), a dry run unless
+`--apply`, reserved words allowed (an admin write), cooldown not started. It runs
+on Node 26's built-in type stripping:
+
+```bash
+LOGTO_ENDPOINT=… LOGTO_M2M_APP_ID=… LOGTO_M2M_APP_SECRET=… node scripts/migrate-handles.ts plan.json [--apply]
+```
+
 ## Configuration
 
 See `.env.example`. Logto settings (applications, roles, webhooks, account

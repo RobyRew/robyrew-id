@@ -19,13 +19,15 @@ export interface UserPatch {
 }
 
 export class ManagementError extends Error {
-  constructor(
-    readonly status: number,
-    readonly code: string,
-    message: string,
-  ) {
+  // Plain fields (no parameter properties), so Node can run scripts that import
+  // this file with its built-in type stripping.
+  readonly status: number
+  readonly code: string
+  constructor(status: number, code: string, message: string) {
     super(message)
     this.name = 'ManagementError'
+    this.status = status
+    this.code = code
   }
 }
 
