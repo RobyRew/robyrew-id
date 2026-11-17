@@ -1,0 +1,17 @@
+---
+interface Props {
+  src: string | null;
+  /** The handle the picture belongs to (alt text). */
+  label: string;
+  /** Where the letter shown without a picture comes from (the name, else the handle). */
+  initialFrom?: string | null;
+  size?: 'md' | 'lg' | 'xl';
+}
+const { src, label, initialFrom, size = 'md' } = Astro.props;
+const box = { md: 'size-12 text-lg', lg: 'size-20 text-2xl', xl: 'size-32 text-4xl' }[size];
+const initial = (initialFrom || label).replace(/^@/, '').trim().charAt(0).toUpperCase() || '?';
+---
+
+<span class:list={['avatar shrink-0', box]}>
+  {src ? <img src={src} alt={`Picture of @${label}`} width="512" height="512" loading="lazy" decoding="async" referrerpolicy="no-referrer" /> : <span aria-hidden="true">{initial}</span>}
+</span>

@@ -1,0 +1,231 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Avatar from '../components/Avatar.astro';
+import { HANDLE_MAX_LENGTH, HANDLE_PATTERN_SOURCE, fallbackHandle, suggestHandle } from '@robyrew/astro-logto/handle';
+import { getApp } from '../lib/app.ts';
+import { MESSAGES } from '../lib/http.ts';
+
+const app = getApp();
+const session = await app.auth.getSession(Astro.request);
+// The mirror is written on every change made here; read Logto once when it has no row yet.
+const me = session ? (app.handles.account(session.sub) ?? (await app.handles.syncUser(session.sub).then(() => app.handles.account(session.sub)).catch(() => null))) : null;
+
+const saved = Astro.url.searchParams.get('saved');
+const error = Astro.url.searchParams.get('error');
+const notice = saved ? MESSAGES[`saved_${saved}`] : null;
+const problem = error ? (MESSAGES[error] ?? 'Something went wrong.') : null;
+const authError = Astro.url.searchParams.has('auth_error');
+
+const dateFormat = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
+const nextChange = me?.nextChangeAt ? dateFormat.format(new Date(me.nextChangeAt)) : null;
+const shown = me ? (me.handle ?? fallbackHandle(me.id)) : null;
+const suggestion = me && !me.handle && me.username ? suggestHandle(me.username) : null;
+const ownAvatar = me?.avatar ? app.avatarStore.fileOf(me.avatar) !== null : false;
+Astro.response.headers.set('cache-control', 'no-store');
+---
+
+<Layout signedIn={Boolean(session)}>
+  {
+    !session && (
+      <section class="rw-card p-6 sm:p-8">
+        <h1 class="text-2xl font-semibold tracking-tight">One handle for every RobyRew app</h1>
+        <p class="mt-3 text-ink-2">
+          Your @handle and your picture live here once and follow you to MapSwitch, ChatForge and the Spotify versions archive.
+        </p>
+        {authError && <p class="rw-hint rw-hint--error mt-4" role="alert">Sign-in did not complete. Try again.</p>}
+        <div class="rw-actions mt-6">
+          <a class="rw-btn rw-btn--primary rw-btn--lg" href="/api/auth/sign-in?returnTo=/">Sign in</a>
+        </div>
+      </section>
+    )
+  }
+
+  {
+    session && !me && (
+      <section class="rw-card p-6">
+        <h1 class="text-xl font-semibold">Your account</h1>
+        <p class="mt-2 text-ink-2">{MESSAGES.unavailable}</p>
+      </section>
+    )
+  }
+
+  {
+    me && (
+      <div class="flex flex-col gap-5">
+        {(notice || problem) && (
+          <p class:list={['rw-card px-4 py-3 text-sm', problem ? 'text-danger' : 'text-ok']} role={problem ? 'alert' : 'status'}>
+            {problem ?? notice}
+          </p>
+        )}
+
+        <section class="rw-card flex items-center gap-4 p-5" aria-label="Your profile">
+          <Avatar src={me.avatar} label={shown!} initialFrom={me.name} size="lg" />
+          <div class="min-w-0">
+            <p class="truncate text-lg font-semibold">{me.name ?? shown}</p>
+            <p class:list={['truncate', me.handle ? 'text-ink-2' : 'text-ink-3']}>@{shown}</p>
+            {me.handle && (
+              <a class="mt-1 inline-block text-sm text-accent" href={`/@${me.handle}`}>
+                Public page
+              </a>
+            )}
+          </div>
+        </section>
+
+        <section class="rw-card p-5" aria-labelledby="handle-title">
+          <h2 id="handle-title" class="text-lg font-semibold">
+            {me.handle ? 'Your handle' : 'Choose your handle'}
+          </h2>
+          {!me.handle && me.username && (
+            <p class="mt-2 text-sm text-ink-2">
+              Your sign-in username “{me.username}” does not fit the handle rule, so apps show @{shown} until you choose one.
+            </p>
+          )}
+          <form class="mt-4 flex flex-col gap-3" method="post" action="/api/handle" data-handle-form>
+            <label class="rw-label" for="handle">Handle</label>
+            <div class="rw-field-wrap">
+              <span class="rw-field-icon" aria-hidden="true">@</span>
+              <input
+                class="rw-field"
+                id="handle"
+                name="handle"
+                type="text"
+                inputmode="text"
+                autocomplete="username"
+                autocapitalize="none"
+                spellcheck="false"
+                required
+                pattern={HANDLE_PATTERN_SOURCE}
+                maxlength={HANDLE_MAX_LENGTH}
+                value={me.handle ?? suggestion ?? ''}
+                disabled={Boolean(nextChange)}
+                aria-describedby="handle-rule handle-status"
+              />
+            </div>
+            <p id="handle-rule" class="rw-hint">3–20 characters: lowercase letters, digits and underscores, starting with a letter or underscore.</p>
+            <p id="handle-status" class="rw-hint" aria-live="polite" data-handle-status>
+              {nextChange ? `You can change it again on ${nextChange}.` : ''}
+            </p>
+            {!nextChange && (
+              <p class="text-sm text-ink-3">
+                {me.handle ? 'After a change, the next one is possible 30 days later. ' : 'Once chosen, a handle can change again after 30 days. '}
+                Old handles stay reserved for you.
+              </p>
+            )}
+            <div class="rw-actions">
+              <button class="rw-btn rw-btn--primary" type="submit" disabled={Boolean(nextChange)}>
+                Save handle
+              </button>
+            </div>
+          </form>
+          {me.previousHandles.length > 0 && (
+            <p class="mt-4 text-sm text-ink-3">
+              Reserved for you: {me.previousHandles.map((h) => `@${h}`).join(', ')}
+            </p>
+          )}
+        </section>
+
+        <section class="rw-card p-5" aria-labelledby="avatar-title">
+          <h2 id="avatar-title" class="text-lg font-semibold">Picture</h2>
+          <p class="mt-1 text-sm text-ink-3">
+            PNG, JPEG, WebP, AVIF or GIF up to 10 MB, stored as a 512 × 512 WebP. Anyone can see it.
+          </p>
+          <form class="mt-4 flex flex-col gap-3" method="post" action="/api/avatar" enctype="multipart/form-data" data-avatar-form>
+            <label class="rw-label" for="avatar">New picture</label>
+            <input class="rw-field" id="avatar" name="avatar" type="file" accept="image/png,image/jpeg,image/webp,image/avif,image/gif" required />
+            <p class="rw-hint" aria-live="polite" data-avatar-status></p>
+            <div class="rw-actions">
+              <button class="rw-btn rw-btn--primary" type="submit">Upload</button>
+            </div>
+          </form>
+          {me.avatar && (
+            <form class="mt-3" method="post" action="/api/avatar" enctype="multipart/form-data">
+              <input type="hidden" name="remove" value="1" />
+              <button class="rw-btn rw-btn--plain rw-btn--sm" type="submit">
+                {ownAvatar ? 'Remove picture' : 'Remove the picture from your sign-in provider'}
+              </button>
+            </form>
+          )}
+        </section>
+      </div>
+    )
+  }
+</Layout>
+
+<script>
+  import { checkHandle, HANDLE_PROBLEM_MESSAGES } from '@robyrew/astro-logto/handle';
+
+  // Live hint while typing: the rule first (no request), then availability.
+  const form = document.querySelector<HTMLFormElement>('[data-handle-form]');
+  const input = form?.querySelector<HTMLInputElement>('input[name="handle"]');
+  const status = form?.querySelector<HTMLElement>('[data-handle-status]');
+  if (form && input && status && !input.disabled) {
+    let timer = 0;
+    let seq = 0;
+    const initial = input.value;
+    input.addEventListener('input', () => {
+      window.clearTimeout(timer);
+      const check = checkHandle(input.value);
+      if (!check.ok) {
+        status.textContent = HANDLE_PROBLEM_MESSAGES[check.problem];
+        input.setAttribute('aria-invalid', 'true');
+        return;
+      }
+      input.removeAttribute('aria-invalid');
+      if (check.handle === initial) {
+        status.textContent = '';
+        return;
+      }
+      status.textContent = 'Checking…';
+      const mine = ++seq;
+      timer = window.setTimeout(async () => {
+        try {
+          const res = await fetch(`/api/handle?check=${encodeURIComponent(check.handle)}`, { headers: { accept: 'application/json' } });
+          const body = (await res.json()) as { available?: boolean; yours?: boolean; problem?: string };
+          if (mine !== seq) return;
+          if (body.available) status.textContent = body.yours ? `@${check.handle} is one of yours.` : `@${check.handle} is free.`;
+          else status.textContent = body.problem === 'taken' ? `@${check.handle} belongs to someone else.` : 'That handle cannot be used.';
+        } catch {
+          if (mine === seq) status.textContent = '';
+        }
+      }, 300);
+    });
+  }
+
+  // Large photos are scaled down to 1024 px in the browser before upload; the
+  // server converts whatever arrives into the stored WebP.
+  const avatarForm = document.querySelector<HTMLFormElement>('[data-avatar-form]');
+  const avatarStatus = avatarForm?.querySelector<HTMLElement>('[data-avatar-status]');
+  avatarForm?.addEventListener('submit', async (event) => {
+    const fileInput = avatarForm.querySelector<HTMLInputElement>('input[type="file"]');
+    const file = fileInput?.files?.[0];
+    if (!file || typeof createImageBitmap !== 'function') return;
+    event.preventDefault();
+    const button = avatarForm.querySelector<HTMLButtonElement>('button[type="submit"]');
+    if (button) button.disabled = true;
+    if (avatarStatus) avatarStatus.textContent = 'Uploading…';
+    let upload: Blob = file;
+    try {
+      const bitmap = await createImageBitmap(file);
+      const scale = Math.min(1, 1024 / Math.max(bitmap.width, bitmap.height));
+      if (scale < 1) {
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.round(bitmap.width * scale);
+        canvas.height = Math.round(bitmap.height * scale);
+        canvas.getContext('2d')?.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+        upload = await new Promise<Blob>((resolve) => canvas.toBlob((b) => resolve(b ?? file), 'image/jpeg', 0.9));
+      }
+      bitmap.close();
+    } catch {
+      upload = file;
+    }
+    const body = new FormData();
+    body.set('avatar', upload, 'avatar');
+    try {
+      const res = await fetch('/api/avatar', { method: 'POST', body, headers: { accept: 'application/json' } });
+      const result = (await res.json().catch(() => ({}))) as { error?: string };
+      window.location.assign(res.ok ? '/?saved=avatar' : `/?error=${encodeURIComponent(result.error ?? 'unavailable')}`);
+    } catch {
+      window.location.assign('/?error=unavailable');
+    }
+  });
+</script>

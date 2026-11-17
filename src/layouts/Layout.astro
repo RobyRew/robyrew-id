@@ -1,0 +1,54 @@
+---
+import '../styles/global.css';
+import { themeBootstrap } from '@robyrew/web-config/theme-bootstrap';
+
+interface Props {
+  title?: string;
+  description?: string;
+  /** Keep the page out of search engines (the /@handle pages). */
+  noindex?: boolean;
+  /** Shown in the bar when someone is signed in. */
+  signedIn?: boolean;
+}
+
+const { title, description = 'One @handle and one picture across the RobyRew apps.', noindex = false, signedIn = false } = Astro.props;
+const pageTitle = title ? `${title} · RobyRew ID` : 'RobyRew ID';
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>{pageTitle}</title>
+    <meta name="description" content={description} />
+    {noindex && <meta name="robots" content="noindex" />}
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f2f2f2" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0c0c0e" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <!-- House pre-paint theme stamp; its CSP hash is computed in astro.config.mjs. -->
+    <script is:inline set:html={themeBootstrap} />
+  </head>
+  <body class="min-h-dvh bg-ground text-ink antialiased">
+    <header class="sticky top-0 z-50 px-4 pt-3">
+      <!-- The one floating element, so the one made of glass; content below is opaque. -->
+      <div class="rw-glass mx-auto flex w-full max-w-xl items-center justify-between gap-3 rounded-full px-4 py-2">
+        <a href="/" class="flex items-center gap-2 text-[15px] font-semibold tracking-tight text-g-ink">
+          <span class="grid size-7 place-items-center rounded-lg bg-accent text-sm font-bold text-on-accent" aria-hidden="true">@</span>
+          RobyRew ID
+        </a>
+        {
+          signedIn && (
+            <form method="post" action="/api/auth/sign-out">
+              <button type="submit" class="rw-btn rw-btn--plain rw-btn--sm">Sign out</button>
+            </form>
+          )
+        }
+      </div>
+    </header>
+    <main class="mx-auto w-full max-w-xl px-4 pb-16 pt-8">
+      <slot />
+    </main>
+  </body>
+</html>

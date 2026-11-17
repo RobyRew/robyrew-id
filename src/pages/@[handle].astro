@@ -1,0 +1,30 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Avatar from '../components/Avatar.astro';
+import { getApp } from '../lib/app.ts';
+
+// The public directory entry: handle, name and picture, nothing else. Old
+// handles and other spellings are redirected by src/middleware.ts.
+const app = getApp();
+const entry = app.handles.lookup(String(Astro.params.handle ?? ''));
+const profile = entry?.kind === 'profile' ? entry : null;
+if (!profile) Astro.response.status = 404;
+Astro.response.headers.set('cache-control', profile ? 'public, max-age=300' : 'public, max-age=60');
+---
+
+<Layout title={profile ? `@${profile.handle}` : 'Not found'} noindex>
+  {
+    profile ? (
+      <section class="rw-card flex flex-col items-center gap-3 p-8 text-center">
+        <Avatar src={profile.avatar} label={profile.handle} initialFrom={profile.name} size="xl" />
+        {profile.name && <h1 class="text-2xl font-semibold tracking-tight">{profile.name}</h1>}
+        <p class:list={[profile.name ? 'text-ink-2' : 'text-2xl font-semibold']}>@{profile.handle}</p>
+      </section>
+    ) : (
+      <section class="rw-card p-8 text-center">
+        <h1 class="text-xl font-semibold">No one has this handle</h1>
+        <p class="mt-2 text-ink-2">Check the spelling, or the person may have changed it.</p>
+      </section>
+    )
+  }
+</Layout>

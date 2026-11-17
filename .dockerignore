@@ -1,0 +1,16 @@
+node_modules
+dist
+.astro
+.git
+.github
+.vscode
+.idea
+.env
+.env.*
+!.env.example
+data
+tests
+**/*.test.ts
+coverage
+*.md
+.DS_Store

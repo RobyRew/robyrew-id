@@ -1,0 +1,9 @@
+{
+  "extends": "@robyrew/web-config/tsconfig/base.json",
+  "compilerOptions": {
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "types": ["node"]
+  },
+  "include": ["src/**/*", "tests/**/*", "scripts/**/*.mjs", "astro.config.mjs", "server.mjs", "vitest.config.ts", ".astro/types.d.ts"],
+  "exclude": ["dist/", "node_modules/", "data/"]
+}
