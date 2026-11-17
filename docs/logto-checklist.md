@@ -8,6 +8,13 @@ Management API with the machine-to-machine app from step 1. Logto 1.46.
 The order matters: steps 1–7 can be applied before the handle migration;
 step 8 only after it.
 
+State read from the production Logto database on 2026-11-17: step 3 is
+already in place (`enabledExtendedClaims` includes `roles`), and so is the
+username part of step 8 (sign-up identifiers `["username"]`, every user has a
+username). Steps 1, 2, 4, 5 and 7 are not done (no M2M app, no RobyRew ID app,
+no `moderator` role, Account center off, no webhooks); step 6 has nothing to
+check yet (no social connectors).
+
 ## 1. Machine-to-machine app for the Management API
 
 - Console → Applications → Create → **Machine-to-machine**, name
