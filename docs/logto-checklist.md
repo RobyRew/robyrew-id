@@ -2,7 +2,7 @@
 
 What the Logto tenant needs so that the Logto `username` is the one @handle and
 the Logto `avatar` the one picture across the apps. Apply in the Console
-(tailnet-only: `https://vps01.tail3ef843.ts.net:8443/console`) or through the
+(tailnet-only) or through the
 Management API with the machine-to-machine app from step 1. Logto 1.46.
 
 The order matters: steps 1–7 can be applied before the handle migration;
