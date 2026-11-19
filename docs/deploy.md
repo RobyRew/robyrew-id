@@ -24,7 +24,8 @@ Same shape as the other Node apps on vps01: GitHub Actions builds the image
    `backup_docker_volumes`, the app to `report_expected_app_mounts`, and
    `https://id.robyrew.com/api/health` to `dokploy_site_probe_sites`. The image
    has no Docker healthcheck on purpose (exec probes leaked memory on vps01).
-6. Put the deploy webhook in the repo secret `DOKPLOY_DEPLOY_WEBHOOK` and push.
+6. Put the deploy webhook in the repo secret `DOKPLOY_DEPLOY_WEBHOOK`, remove
+   `request_deploy: false` from `.github/workflows/build-image.yml`, and push.
 
 After a deploy, check the running image digest (`docker service inspect` /
 `docker image inspect … RepoDigests`) rather than the Dokploy status: a task

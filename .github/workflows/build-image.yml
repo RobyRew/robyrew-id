@@ -15,5 +15,9 @@ jobs:
       contents: read
       packages: write
     uses: RobyRew/platform/.github/workflows/build-image.yml@main
+    with:
+      # No Dokploy app exists yet (docs/deploy.md): build and publish the image
+      # only. Remove this once DOKPLOY_DEPLOY_WEBHOOK is set.
+      request_deploy: false
     secrets:
       DOKPLOY_DEPLOY_WEBHOOK: ${{ secrets.DOKPLOY_DEPLOY_WEBHOOK }}
