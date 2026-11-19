@@ -7,13 +7,17 @@ FROM node:26-alpine AS build
 WORKDIR /app
 
 COPY package.json package-lock.json ./
-RUN npm ci --no-audit --no-fund
+# --ignore-scripts: nothing here needs an install script (sharp loads its
+# prebuilt @img/sharp-linuxmusl-x64 package), and with scripts npm "prepares"
+# the git dependency @robyrew/astro-logto by installing its dev dependencies,
+# whose better-sqlite3 build needs a compiler this stage does not have.
+RUN npm ci --ignore-scripts --no-audit --no-fund
 
 COPY . .
 RUN npm run build
 
 # Keep only runtime dependencies.
-RUN npm prune --omit=dev
+RUN npm prune --omit=dev --ignore-scripts
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Runtime — Node server, non-root.
