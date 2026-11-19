@@ -21,6 +21,7 @@ let routes: {
   avatar: typeof import('../src/pages/api/avatar.ts')
   hook: typeof import('../src/pages/api/hooks/logto.ts')
   file: typeof import('../src/pages/avatars/[file].ts')
+  healthz: typeof import('../src/pages/healthz.ts')
   app: typeof import('../src/lib/app.ts')
 }
 
@@ -85,6 +86,7 @@ beforeAll(async () => {
     avatar: await import('../src/pages/api/avatar.ts'),
     hook: await import('../src/pages/api/hooks/logto.ts'),
     file: await import('../src/pages/avatars/[file].ts'),
+    healthz: await import('../src/pages/healthz.ts'),
     app: await import('../src/lib/app.ts'),
   }
   await routes.app.getApp().syncNow()
@@ -96,6 +98,12 @@ afterAll(async () => {
 })
 
 describe('robyrew-id routes', () => {
+  it('answers the site probe with ok', async () => {
+    const res = await call(routes.healthz, 'GET', ctx('/healthz'))
+    expect(res.status).toBe(200)
+    expect(await res.text()).toBe('ok')
+  })
+
   it('signs in as Alice through Logto', async () => {
     const start = await call(routes.signIn, 'GET', ctx('/api/auth/sign-in?returnTo=/'))
     const back = logto.authorize(start.headers.get('location')!, 'alice0000001')
