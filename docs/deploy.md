@@ -24,9 +24,20 @@ Same shape as the other Node apps on vps01: GitHub Actions builds the image
    `backup_docker_volumes`, the app to `report_expected_app_mounts`, and
    `https://id.robyrew.com/api/health` to `dokploy_site_probe_sites`. The image
    has no Docker healthcheck on purpose (exec probes leaked memory on vps01).
-6. Put the deploy webhook in the repo secret `DOKPLOY_DEPLOY_WEBHOOK`, remove
-   `request_deploy: false` from `.github/workflows/build-image.yml`, and push.
+6. Put the deploy webhook in the repo secret `DOKPLOY_DEPLOY_WEBHOOK`; every
+   push to `main` then builds the image and asks Dokploy to pull it.
 
 After a deploy, check the running image digest (`docker service inspect` /
 `docker image inspect … RepoDigests`) rather than the Dokploy status: a task
 that fails to start is rolled back while the deployment still reads "done".
+
+## As deployed (2026-11-19)
+
+- Logto: Traditional Web app `RobyRew ID` (`2z9dm3wv1lk0yt2iettbi`), the M2M app
+  `RobyRew ID (management)` with its own secret "robyrew-id production", and the
+  webhook `RobyRew ID` (`8zc9awmo4iquzyel86ac9`, the four user events).
+- Dokploy: application `Uw6NS2BdY0ZPzuA6aZiJA` (service `robyrew-id-dotdpw`) in
+  the Tools project, image `ghcr.io/robyrew/robyrew-id:latest`, memory limit
+  `"201326592"`, named volume `robyrew-id-data` on `/app/data`, domain
+  `id.robyrew.com` → 4321 with Let's Encrypt.
+

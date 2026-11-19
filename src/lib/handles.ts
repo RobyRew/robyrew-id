@@ -103,11 +103,15 @@ export function createHandleService(options: HandleServiceOptions) {
          previous_handles = excluded.previous_handles, synced_at = excluded.synced_at`,
     ),
     deleteHandles: db.prepare('DELETE FROM handles WHERE profile_id = ?'),
-    // A current username beats another person's stale reservation; between two
-    // current usernames (case variants such as Bob/bob) the first one indexed stays.
+    // A current username beats another person's stale reservation. Between two
+    // current usernames that are case variants (Logto keeps "RobyRew" and
+    // "robyrew" apart), the one that is exactly the handle wins, whichever is
+    // mirrored first; mirror() passes `exact` = 1 for it.
     insertCurrent: db.prepare(
-      `INSERT INTO handles (handle, profile_id, kind) VALUES (?, ?, 'current')
-       ON CONFLICT(handle) DO UPDATE SET profile_id = excluded.profile_id, kind = 'current' WHERE handles.kind = 'previous'`,
+      `INSERT INTO handles (handle, profile_id, kind) VALUES (:handle, :id, 'current')
+       ON CONFLICT(handle) DO UPDATE SET profile_id = excluded.profile_id, kind = 'current'
+       WHERE handles.kind = 'previous'
+          OR (:exact = 1 AND (SELECT username FROM profiles WHERE id = handles.profile_id) IS NOT :handle)`,
     ),
     insertPrevious: db.prepare(`INSERT OR IGNORE INTO handles (handle, profile_id, kind) VALUES (?, ?, 'previous')`),
     deleteProfile: db.prepare('DELETE FROM profiles WHERE id = ?'),
@@ -135,7 +139,9 @@ export function createHandleService(options: HandleServiceOptions) {
       )
       q.deleteHandles.run(user.id)
       if (user.username) {
-        const result = q.insertCurrent.run(user.username.toLowerCase(), user.id)
+        const handle = user.username.toLowerCase()
+        const exact = isHandle(user.username) ? 1 : 0
+        const result = q.insertCurrent.run({ handle, id: user.id, exact })
         if (Number(result.changes) === 0) log.warn(`[handles] ${user.id}: username ${user.username} is already indexed for another user`)
       }
       for (const handle of state.previousHandles) {

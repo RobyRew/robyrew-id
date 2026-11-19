@@ -129,6 +129,19 @@ describe('directory and mirror', () => {
     expect(handles.lookup('bob')).toBeNull()
   })
 
+  it('gives a handle to the exact username, not to a case variant, in either mirror order', async () => {
+    for (const order of [['caseVar0001', 'exactRob0002'], ['exactRob0002', 'caseVar0001']]) {
+      const { handles } = service()
+      const users = {
+        caseVar0001: { id: 'caseVar0001', username: 'RobyRew', name: 'Capitals', avatar: null, customData: {}, isSuspended: false },
+        exactRob0002: { id: 'exactRob0002', username: 'robyrew', name: 'Exact', avatar: null, customData: {}, isSuspended: false },
+      }
+      for (const id of order) handles.mirror(users[id as keyof typeof users])
+      expect(handles.lookup('robyrew'), order.join(' then ')).toEqual({ kind: 'profile', handle: 'robyrew', name: 'Exact', avatar: null })
+      expect(handles.availability('robyrew', 'someoneElse').available).toBe(false)
+    }
+  })
+
   it('forgets users Logto no longer has, which releases their handles', async () => {
     const { handles } = service()
     await handles.syncAll()
